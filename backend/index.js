@@ -1,121 +1,138 @@
 const express = require('express');
-//const bodyparser = require('express');
+const bodyparser = require('body-parser');
 const cors = require('cors');
-//const mysql = require('mysql2');
-const mariadb = require('mariadb');
-const bodyParser = require("body-parser");
-// Ref another page const db = require("./index");
+const mysql = require('mysql2');
+
+
 
 const app = express();
 
 app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyparser.json());
 
+//DB Conexión
 
-
-// Connection Pool
-
-//const db = mysql.createConnection
-const pool = mariadb.createPool({
+const db = mysql.createConnection({
    host:'localhost',
    user:'root',
    password:'',
-   database:'propiedad',
+   database:'propiedades',
    port:3306
 });
 
-// Expose a method to establish connection with MariaDB SkySQL
-module.exports = Object.freeze({
-    pool: pool
+//Revisar DB
+db.connect(err=>{
+    if(err){console.log('Error de BD');}
+    console.log('Base de datos conectada...');
+})
+
+//Traer todas las propiedades
+app.get('/propiedad',(req,result)=>{
+    let qr = 'select * from propiedad';
+    db.query(qr,(err,result)=>{
+        if(err){
+            console.log(err,'Error');
+        }
+        if(result.length>0){
+            res.send({
+                message:'Todas las propiedades',
+                data:result
+            });
+        }
+    });
 });
 
-//check database connection
-
-//db.connect(err=>{if (err) {console.log(err,'dberr')}console.log('Database connected ...');})
-
-//get all data de tablas
-//Async only for mariadb
-
-app.get('/propiedad', async (req, res) => {
-    try {
-        const result = await pool.query("select * from propiedad");
-        res.send({
-            message:'Todos los datos de propiedades',
-            data:result
-        });
-    } catch (err) {
-        throw err;
-    }
+//Traer una propiedad
+app.get('/propiedad/:id',(req,result)=>{
+    let gID = req.params.id;
+    let qr = 'select * from propiedad where id = '${gID}'';
+    db.query(qr,(err,result)=>{
+        if(err){
+            console.log(err,'Error');
+        }
+        if(result.length>0){
+            res.send({
+                message:'Una propiedad',
+                data:result
+            });
+        }
+        else {
+            res.send({
+                message:'No existe',
+            });
+        }
+    });
 });
 
-//get una propiedad
-//MySQL query select from propiedad where id = ${id]
-app.get('/propiedad/:id', async (req, res) => {
-    let id = req.params.id;
-    let qr = 'select * from propiedad where id = ?';
-    try {
-        const result = await pool.query(qr, id);
-        res.send({
-            message:'Una propiedad',
-            data:result
-        });
-    } catch (err) {
-        throw err;
-    }
-});
-
-// Crear propiedad
-app.post('/propiedad', async (req, res) => {
+//Crear una propiedad
+app.post('/propiedad',(req,result)=>{
+    console.log('Crear Propiedad');
     let propiedad = req.body;
+    let nombrep = propiedad.nombre;
+    let areap = propiedad.area;
+    let cuartosp = propiedad.cuartos;
 
-    let nombreP = propiedad.nombre;
-    let areaP = propiedad.area;
-    let cuartosN = propiedad.cuartos;
-    let qr = 'insert into propiedad(nombre,area,cuartos) values (?)';
-    try {
-        const result = await pool.query(qr,
-            [nombreP,areaP,cuartosN]);
-        res.send(result);
-    } catch (err) {
-        throw err;
-    }
+    let qr = 'insert into propiedad(nombre,area,cuartos) values('${nombrep}','${areap}','${cuartos}')';
+    db.query(qr,(err,result)=>{
+        if(err){
+            console.log(err,'Error');
+        }
+        console.log(result,'Resultado');
+            res.send({
+                message:'Propiedad creada',
+            });
+
+    });
 });
 
-//Modificar propiedad
-app.put('/propiedad/:id', async (req, res) => {
+//Actualizar una propiedad
+app.put('/propiedad/:id',(req,result)=>{
+
+    console.log(req.body,'Actualizar propiedad');
+    let gID = req.params.id;
     let propiedad = req.body;
+    let nombrep = propiedad.nombre;
+    let areap = propiedad.area;
+    let cuartosp = propiedad.cuartos;
 
-    let id = req.params.id;
-    let nombreP = propiedad.nombre;
-    let areaP = propiedad.area;
-    let cuartosN = propiedad.cuartos;
+    let qr = 'update propiedad set nombre='${nombrep}', area='${areap}', cuartos='${cuartosp}' where id = '${gID}'';
+    db.query(qr,(err,result)=>{
+        if(err){
+            console.log(err,'Error');
+        }
+            res.send({
+                message:'Una propiedad fue actualizada',
+            });
 
-    let qr = 'update propiedad set nombre = ?, area = ?, cuartos =? where id = ?';
-
-    try {
-        const result = await pool.query(qr,
-            [nombreP, areaP,cuartosN, id]);
-        res.send(result);
-    } catch (err) {
-        throw err;
-    }
+    });
 });
 
-//Borrar propiedad
-app.delete('/propiedad/:id', async (req, res) => {
-    let id = req.query.id;
-    try {
-        const result = await pool.query("delete from propiedad where id = ?", [id]);
-        res.send(result);
-    } catch (err) {
-        throw err;
-    }
+//Eliminar una propiedad
+app.delete('/propiedad/:id',(req,result)=>{
+    let gID = req.params.id;
+    let qr = 'delete from propiedad where id = '${gID}'';
+    db.query(qr,(err,result)=>{
+        if(err){
+            console.log(err,'Error');
+        }
+
+            res.send({
+                message:'Propiedad eliminada',
+            });
+    });
 });
+
 
 
 
 
 app.listen(3000,()=>{
-    console.log('server running..');
-});
+    console.log('El servidor está corriendo...');
+})
+
+//Node 14.17.5 - Angular 12.2.2 - NPM, nodemon, npm init -y, npm i express body-parser cors mysql2
+
+
+
+
+
